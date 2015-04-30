@@ -43,7 +43,7 @@ ipad <- data.m %>% group_by(Product) %>% filter(Product=="iPad") %>% na.omit() %
 ipad.ts <- ts(ipad$Sales, start=c(2010, 2), frequency = 4)
 
 pdf(file="figures/apple-ipad-decomposition.pdf", height=4, width=8)
-plot(stl(ipad.ts, s.window = 5, t.jump = 1))
+plot(stl(ipad.ts, s.window = "periodic", t.jump = 1))
 title("Loess Decomposition of iPad Sales")
 dev.off()
 
@@ -51,7 +51,7 @@ iphone <- data.m %>% group_by(Product) %>% filter(Product=="iPhone") %>%
     na.omit() %>% data.frame(.)
 iphone.ts <- ts(iphone$Sales, start=c(2007, 2), frequency = 4)
 pdf(file="figures/apple-iphone-decomposition.pdf", height=4, width=8)
-plot(stl(iphone.ts, s.window = 5, t.jump = 1))
+plot(stl(iphone.ts, s.window = "periodic", t.jump = 1))
 title("Loess Decomposition of iPhone Sales")
 dev.off()
 
@@ -59,6 +59,6 @@ mac <- data.m %>% group_by(Product) %>% filter(Product=="Mac") %>%
     na.omit() %>% data.frame(.)
 mac.ts <- ts(mac$Sales, start=c(1998, 4), frequency = 4)
 pdf(file="figures/apple-mac-decomposition.pdf", height=4, width=8)
-plot(stl(mac.ts, s.window = 5, t.jump = 1))
+plot(stl(mac.ts, s.window = "periodic", t.jump = 1))
 title("Loess Decomposition of Mac Sales")
 dev.off()
