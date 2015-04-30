@@ -27,10 +27,13 @@ p + geom_point(size=0.8) + geom_smooth(size=0.8, se=FALSE) + theme(legend.positi
 
 
 ### quick time series decompositions
-ipad <- ts(data[47:66, "iPad"], start=c(2010, 2), frequency = 4)
-plot(stl(ipad, s.window = 5, t.jump = 1))
+ipad <- data.m %>% group_by(Product) %>% filter(Product=="iPad") %>% na.omit() %>% data.frame(.)
+ipad.ts <- ts(ipad$Sales, start=c(2010, 2), frequency = 4)
+plot(stl(ipad.ts, s.window = 5, t.jump = 1))
 title("Loess Decomposition of iPad Sales")
 
-iphone <- ts(data[35:66, "iPhone"], start=c(2007, 2), frequency = 4)
-plot(stl(iphone, s.window = 5, t.jump = 1))
+iphone <- data.m %>% group_by(Product) %>% filter(Product=="iPhone") %>%
+    na.omit() %>% data.frame(.)
+iphone.ts <- ts(iphone$Sales, start=c(2007, 2), frequency = 4)
+plot(stl(iphone.ts, s.window = 5, t.jump = 1))
 title("Loess Decomposition of iPhone Sales")
