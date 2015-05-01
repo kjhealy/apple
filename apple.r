@@ -9,6 +9,25 @@ library(tidyr)
 library(splines)
 library(scales)
 
+##' Color-blind friendly palette
+##' From \url{http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/}
+##' @title Color-blind friendly palette
+##' @param palette Choose "cb", "rcb", or "bly". cb is the Winston
+##' Chang color blind palette; rcb is that palette in reverse; bly
+##' puts the yellow and blue in the palette first.
+##' @return Variations on an eight-color color-blind friendly palette.
+##' @author Winston Chang / Kieran Healy
+##' @export
+my.colors <- function(palette="cb"){
+  ### The palette with grey:
+  cb.palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  ## Same one Reversed
+  rcb.palette <- rev(cb.palette)
+  ## Blue and yellow first choices
+  bly.palette <- c("#E69F00", "#0072B2", "#999999", "#56B4E9", "#009E73", "#F0E442", "#D55E00", "#CC79A7")
+  if (palette=="cb") return(cb.palette) else if (palette=="rcb") return(rcb.palette) else if (palette=="bly") return(bly.palette) else stop("Choose cb, rcb, or bly ony.")
+}
+
 theme_set(theme_minimal())
 
 data <- read.csv("data/apple-all-products-quarterly-sales.csv", header=TRUE)
@@ -172,3 +191,43 @@ pdf(file="figures/apple-three-season-gg.pdf", height=6, width=10)
 p <- ggplot(stl.comb, aes(x=Date, y=Ratio, color=Product))
 p + geom_line(size=1.1) + ylab("Seasonal/Trend (pct)") +  scale_colour_manual(values=my.colors()) + theme(legend.position="top")
 dev.off()
+
+
+### Banking illustration
+## iphone sales
+p <- ggplot(ggiphone.stl, aes(x=Date, y=sales))
+p2 <- p + geom_line() + ylab("Millions")
+## calculate banking aspect ratio
+library(ggthemes)
+ar <- bank_slopes(as.numeric(ggiphone.stl$Date), ggiphone.stl$trend)
+
+pdf(file="figures/apple-iphone-banked45.pdf", height=3, width=15)
+p3 <- p2 + coord_fixed(ratio=ar) + ggtitle("iPhone Quarterly Sales Trend banked to 45 degrees")
+print(p3)
+dev.off()
+
+ggsave("figures/apple-iphone-banked45.png", p3, height=4, width=15, dpi=300)
+
+
+pdf(file="figures/apple-iphone-banked-modest.pdf", height=2.5, width=10)
+p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend\n4:1 aspect ratio")
+print(p3)
+dev.off()
+
+ggsave("figures/apple-iphone-banked-modest.png", p3, height=4, width=10, dpi=300)
+
+
+
+pdf(file="figures/apple-iphone-2to1.pdf", height=4, width=8)
+p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend")
+print(p3)
+dev.off()
+
+ggsave("figures/apple-iphone-2to1.png", p3, height=4, width=8, dpi=300)
+
+
+pdf(file="figures/apple-iphone-square.pdf", height=5, width=4)
+p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend,\n with less than 1:1 aspect ratio")
+print(p3)
+dev.off()
+ggsave("figures/apple-iphone-square.png", p3, height=5, width=4, dpi=300)
