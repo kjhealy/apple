@@ -8,6 +8,7 @@ library(ggplot2)
 library(tidyr)
 library(splines)
 library(scales)
+library(grid)
 
 ##' Color-blind friendly palette
 ##' From \url{http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/}
