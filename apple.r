@@ -187,9 +187,9 @@ dev.off()
 stl.comb <- rbind(ggmac.stl, ggiphone.stl, ggipad.stl)
 stl.comb$Ratio <- (stl.comb$seasonal/stl.comb$trend)*100
 
-pdf(file="figures/apple-three-season-gg.pdf", height=6, width=10)
+pdf(file="figures/apple-three-season-gg.pdf", height=3, width=10)
 p <- ggplot(stl.comb, aes(x=Date, y=Ratio, color=Product))
-p + geom_line(size=1.1) + ylab("Seasonal/Trend (pct)") +  scale_colour_manual(values=my.colors()) + theme(legend.position="top")
+p + geom_line(size=0.9) + ylab("Seasonal/Trend (pct)") +  scale_colour_manual(values=my.colors()) + theme(legend.position="top")
 dev.off()
 
 
