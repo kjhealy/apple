@@ -8,6 +8,7 @@ library(ggplot2)
 library(tidyr)
 library(splines)
 library(scales)
+library(grid)
 
 ##' Color-blind friendly palette
 ##' From \url{http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/}
@@ -111,6 +112,7 @@ p5 <- p + geom_line(stat="identity", position="dodge") + ylab("Seasonal/\nTrend 
 pdf(file="figures/apple-mac-decomposition-gg.pdf", height=8, width=12)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(5, 1)))
+vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
 print(p1, vp = vplayout(1, 1))
 print(p2, vp = vplayout(2, 1))
 print(p3, vp = vplayout(3, 1))
