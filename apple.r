@@ -31,7 +31,7 @@ my.colors <- function(palette="cb"){
 theme_set(theme_minimal())
 
 data <- read.csv("data/apple-all-products-quarterly-sales.csv", header=TRUE)
-data$Date <- seq(as.Date("1998/12/31"), as.Date("2015/4/1"), by = "quarter")
+data$Date <- seq(as.Date("1998/12/31"), as.Date("2015/7/2"), by = "quarter")
 
 
 data.m <- gather(data, Product, Sales, iPhone:Mac)
@@ -199,10 +199,10 @@ p <- ggplot(ggiphone.stl, aes(x=Date, y=sales))
 p2 <- p + geom_line() + ylab("Millions")
 ## calculate banking aspect ratio
 library(ggthemes)
-ar <- bank_slopes(as.numeric(ggiphone.stl$Date), ggiphone.stl$trend)
+ar <- bank_slopes(as.numeric(ggiphone.stl$Date), ggiphone.stl$sales)
 
 pdf(file="figures/apple-iphone-banked45.pdf", height=3, width=15)
-p3 <- p2 + coord_fixed(ratio=ar) + ggtitle("iPhone Quarterly Sales Trend banked to 45 degrees")
+p3 <- p2 + coord_fixed(ratio=ar)
 print(p3)
 dev.off()
 
@@ -210,7 +210,7 @@ ggsave("figures/apple-iphone-banked45.png", p3, height=4, width=15, dpi=300)
 
 
 pdf(file="figures/apple-iphone-banked-modest.pdf", height=2.5, width=10)
-p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend\n4:1 aspect ratio")
+p3 <- p2
 print(p3)
 dev.off()
 
@@ -219,15 +219,15 @@ ggsave("figures/apple-iphone-banked-modest.png", p3, height=4, width=10, dpi=300
 
 
 pdf(file="figures/apple-iphone-2to1.pdf", height=4, width=8)
-p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend")
+p3 <- p2 + ggtitle("iPhone Quarterly Trend")
 print(p3)
 dev.off()
 
 ggsave("figures/apple-iphone-2to1.png", p3, height=4, width=8, dpi=300)
 
 
-pdf(file="figures/apple-iphone-square.pdf", height=5, width=4)
-p3 <- p2 + ggtitle("iPhone Quarterly Sales Trend,\n with less than 1:1 aspect ratio")
+pdf(file="figures/apple-iphone-square.pdf", height=4, width=3, pointsize=8)
+p3 <- p2 + theme(plot.margin=unit(c(5,15,5,15),"mm"), axis.text.x = element_text(size=6))
 print(p3)
 dev.off()
-ggsave("figures/apple-iphone-square.png", p3, height=5, width=4, dpi=300)
+ggsave("figures/apple-iphone-square.png", p3, height=4, width=3, dpi=300)
