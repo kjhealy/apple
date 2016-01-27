@@ -3,12 +3,41 @@
 ###--------------------------------------------------
 
 
-library(dplyr)
+library(grid)
 library(ggplot2)
+library(gtable)
+library(dplyr)
 library(tidyr)
+library(lubridate)
 library(splines)
 library(scales)
-library(grid)
+
+
+### Nice alignment solution from Baptiste Auguié
+### http://stackoverflow.com/questions/13294952/left-align-two-graph-edges-ggplot/22984913
+rbind_gtable_max <- function(...){
+
+  gtl <- list(...)
+  stopifnot(all(sapply(gtl, is.gtable)))
+  bind2 <- function (x, y)
+  {
+    stopifnot(ncol(x) == ncol(y))
+    if (nrow(x) == 0)
+      return(y)
+    if (nrow(y) == 0)
+      return(x)
+    y$layout$t <- y$layout$t + nrow(x)
+    y$layout$b <- y$layout$b + nrow(x)
+    x$layout <- rbind(x$layout, y$layout)
+    x$heights <- gtable:::insert.unit(x$heights, y$heights)
+    x$rownames <- c(x$rownames, y$rownames)
+    x$widths <- grid::unit.pmax(x$widths, y$widths)
+    x$grobs <- append(x$grobs, y$grobs)
+    x
+  }
+
+  Reduce(bind2, gtl)
+}
 
 ##' Color-blind friendly palette
 ##' From \url{http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/}
@@ -21,7 +50,8 @@ library(grid)
 ##' @export
 my.colors <- function(palette="cb"){
   ### The palette with grey:
-  cb.palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    cb.palette <- c("#999999", "#E69F00", "#56B4E9",
+                    "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
   ## Same one Reversed
   rcb.palette <- rev(cb.palette)
   ## Blue and yellow first choices
@@ -29,11 +59,70 @@ my.colors <- function(palette="cb"){
   if (palette=="cb") return(cb.palette) else if (palette=="rcb") return(rcb.palette) else if (palette=="bly") return(bly.palette) else stop("Choose cb, rcb, or bly ony.")
 }
 
+
+### Convenience function to draw the plots
+draw.stl <- function(data.all=data.m,
+                     prod.name="iPhone",
+                     start.yr = 2007,
+                     start.q = 2,
+                     bar.width = 4){
+
+    data.ts <- data.all %>% group_by(Product) %>%
+        filter(Product==prod.name) %>%
+        na.omit() %>%
+        data.frame(.)
+
+    prod.ts <- ts(data.ts$Sales, start=c(start.yr, start.q), frequency = 4)
+
+    data.stl2 <- stl(prod.ts, s.window = 11, t.jump = 1)
+    ggdata.stl <- data.frame(data.stl2$time.series)
+    ggdata.stl$sales <- data.ts$Sales
+    ggdata.stl$Date <- data.ts$Date
+    ggdata.stl$Product <- data.ts$Product
+
+    theme_set(theme_minimal())
+
+    p <- ggplot(ggdata.stl, aes(x=Date, y=sales))
+    p1 <- p + geom_line() + ylab("Data") + xlab("")  +
+        theme(axis.text.x = element_blank(),
+              axis.title.y = element_text(size=rel(0.8)),
+              plot.title = element_text(size=rel(1))) +
+        ggtitle(paste(prod.name, "Units Sold (Millions)"))
+
+    p <- ggplot(ggdata.stl, aes(x=Date, y=trend))
+    p2 <- p + geom_line() + ylab("Trend") + xlab("") +
+        theme(axis.text.x = element_blank(),
+              axis.title.y = element_text(size=rel(0.8)))
+
+    p <- ggplot(ggdata.stl, aes(x=Date, y=seasonal))
+    p3 <- p + geom_line() + ylab("Seasonal") + xlab("") +
+        theme(axis.text.x = element_blank(),
+              axis.title.y = element_text(size=rel(0.8)))
+
+    p <- ggplot(ggdata.stl, aes(x=Date, ymax=remainder, ymin=0))
+    p4 <- p + geom_linerange(size=bar.width) +
+        ylab("Remainder") + xlab("") +
+        theme(axis.text.x = element_blank(),
+              axis.title.y = element_text(size=rel(0.8)))
+
+    p <- ggplot(ggdata.stl, aes(x=Date, y=(seasonal/trend)*100))
+    p5 <- p + geom_line(stat="identity") + ylab("Seasonal/Trend (%)") +
+        theme(axis.title.y = element_text(size=rel(0.8)))
+
+    g1<-ggplotGrob(p1)
+    g2<-ggplotGrob(p2)
+    g3<-ggplotGrob(p3)
+    g4<-ggplotGrob(p4)
+    g5<-ggplotGrob(p5)
+    out <- rbind_gtable_max(g1, g2, g3, g4, g5)
+    return(out)
+}
+
+
 theme_set(theme_minimal())
 
 data <- read.csv("data/apple-all-products-quarterly-sales.csv", header=TRUE)
-data$Date <- seq(as.Date("1998/12/31"), as.Date("2015/7/2"), by = "quarter")
-
+data$Date <- seq(as.Date("1998/12/31"), as.Date("2015/12/31"), by = "quarter")
 
 data.m <- gather(data, Product, Sales, iPhone:Mac)
 
@@ -57,143 +146,71 @@ dev.off()
 ggsave("figures/apple-sales-trends-mac.png", p0, height=4, width=8, dpi=300)
 
 
-
-### quick time series decompositions
-ipad <- data.m %>% group_by(Product) %>% filter(Product=="iPad") %>% na.omit() %>% data.frame(.)
-ipad.ts <- ts(ipad$Sales, start=c(2010, 2), frequency = 4)
-
-pdf(file="figures/apple-ipad-decomposition.pdf", height=4, width=8)
-plot(stl(ipad.ts, s.window = "periodic", t.jump = 1))
-title("Loess Decomposition of iPad Sales")
-dev.off()
-
-iphone <- data.m %>% group_by(Product) %>% filter(Product=="iPhone") %>%
-    na.omit() %>% data.frame(.)
-iphone.ts <- ts(iphone$Sales, start=c(2007, 2), frequency = 4)
-pdf(file="figures/apple-iphone-decomposition.pdf", height=4, width=8)
-plot(stl(iphone.ts, s.window = "periodic", t.jump = 1))
-title("Loess Decomposition of iPhone Sales")
-dev.off()
-
-mac <- data.m %>% group_by(Product) %>% filter(Product=="Mac") %>%
-    na.omit() %>% data.frame(.)
-mac.ts <- ts(mac$Sales, start=c(1998, 4), frequency = 4)
-mac.stl <- stl(mac.ts, s.window = "periodic", t.jump = 1)
-
-pdf(file="figures/apple-mac-decomposition.pdf", height=4, width=10)
-plot(stl(mac.ts, s.window = "periodic", t.jump = 1))
-title("Loess Decomposition of Mac Sales")
-dev.off()
-
-
-### Look again
-mac.stl2 <- stl(mac.ts, s.window = 11, t.jump = 1)
-ggmac.stl <- data.frame(mac.stl2$time.series)
-ggmac.stl$sales <- data$Mac
-ggmac.stl$Date <- data$Date
-ggmac.stl$Product <- "Mac"
-
-
-p <- ggplot(ggmac.stl, aes(x=Date, y=sales))
-p1 <- p + geom_line() + ylab("Data")
-
-p <- ggplot(ggmac.stl, aes(x=Date, y=trend))
-p2 <- p + geom_line() + ylab("Trend")
-
-p <- ggplot(ggmac.stl, aes(x=Date, y=seasonal))
-p3 <- p + geom_line() + ylab("Seasonal")
-
-p <- ggplot(ggmac.stl, aes(x=Date, y=remainder))
-p4 <- p + geom_bar(stat="identity", position="dodge") + ylab("Remainder")
-
-p <- ggplot(ggmac.stl, aes(x=Date, y=(seasonal/trend)*100))
-p5 <- p + geom_line(stat="identity", position="dodge") + ylab("Seasonal/\nTrend (pct)")
+### Loess Decomposition
 
 pdf(file="figures/apple-mac-decomposition-gg.pdf", height=8, width=12)
+
+mac.stl <- draw.stl(data.all = data.m,
+                    prod.name = "Mac",
+                    start.yr = 1998,
+                    start.q = 2)
 grid.newpage()
-pushViewport(viewport(layout = grid.layout(5, 1)))
-vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
-print(p1, vp = vplayout(1, 1))
-print(p2, vp = vplayout(2, 1))
-print(p3, vp = vplayout(3, 1))
-print(p4, vp = vplayout(4, 1))
-print(p5, vp = vplayout(5, 1))
+grid.draw(mac.stl)
+
 dev.off()
 
-ipad.stl2 <- stl(ipad.ts, s.window = 11, t.jump = 1)
-ggipad.stl <- data.frame(ipad.stl2$time.series)
-ggipad.stl$sales <- data$iPad %>% na.omit()
-ind <- is.na(data$iPad)
-ggipad.stl$Date <- data$Date[!ind]
-ggipad.stl$Product <- "iPad"
 
+pdf(file="figures/apple-ipad-decomposition-gg.pdf", height=8.2, width=10)
 
-p <- ggplot(ggipad.stl, aes(x=Date, y=sales))
-p1 <- p + geom_line() + ylab("Data")
+ipad.stl <- draw.stl(data.all = data.m,
+                    prod.name = "iPad",
+                    start.yr = 2010,
+                    start.q = 2,
+                    bar.width = 8)
 
-p <- ggplot(ggipad.stl, aes(x=Date, y=trend))
-p2 <- p + geom_line() + ylab("Trend")
-
-p <- ggplot(ggipad.stl, aes(x=Date, y=seasonal))
-p3 <- p + geom_line() + ylab("Seasonal")
-
-p <- ggplot(ggipad.stl, aes(x=Date, y=remainder))
-p4 <- p + geom_bar(stat="identity", position="dodge") + ylab("Remainder")
-
-p <- ggplot(ggipad.stl, aes(x=Date, y=(seasonal/trend)*100))
-p5 <- p + geom_line(stat="identity", position="dodge") + ylab("Seasonal/\nTrend (pct)")
-
-pdf(file="figures/apple-ipad-decomposition-gg.pdf", height=8, width=10)
 grid.newpage()
-pushViewport(viewport(layout = grid.layout(5, 1)))
-print(p1, vp = vplayout(1, 1))
-print(p2, vp = vplayout(2, 1))
-print(p3, vp = vplayout(3, 1))
-print(p4, vp = vplayout(4, 1))
-print(p5, vp = vplayout(5, 1))
+grid.draw(ipad.stl)
+
 dev.off()
 
-iphone.stl2 <- stl(iphone.ts, s.window = 11, t.jump = 1)
-ggiphone.stl <- data.frame(iphone.stl2$time.series)
-ggiphone.stl$sales <- data$iPhone %>% na.omit()
-ind <- is.na(data$iPhone)
-ggiphone.stl$Date <- data$Date[!ind]
-ggiphone.stl$Product <- "iPhone"
 
-p <- ggplot(ggiphone.stl, aes(x=Date, y=sales))
-p1 <- p + geom_line() + ylab("Data")
 
-p <- ggplot(ggiphone.stl, aes(x=Date, y=trend))
-p2 <- p + geom_line() + ylab("Trend")
-
-p <- ggplot(ggiphone.stl, aes(x=Date, y=seasonal))
-p3 <- p + geom_line() + ylab("Seasonal")
-
-p <- ggplot(ggiphone.stl, aes(x=Date, y=remainder))
-p4 <- p + geom_bar(stat="identity", position="dodge") + ylab("Remainder")
-
-p <- ggplot(ggiphone.stl, aes(x=Date, y=(seasonal/trend)*100))
-p5 <- p + geom_line(stat="identity", position="dodge") + ylab("Seasonal/\nTrend (pct)")
 
 pdf(file="figures/apple-iphone-decomposition-gg.pdf", height=8, width=10)
+
+iphone.stl <- draw.stl(data.all = data.m,
+                    prod.name = "iPhone",
+                    start.yr = 2007,
+                    start.q = 2,
+                    bar.width = 6)
+
 grid.newpage()
-pushViewport(viewport(layout = grid.layout(5, 1)))
-print(p1, vp = vplayout(1, 1))
-print(p2, vp = vplayout(2, 1))
-print(p3, vp = vplayout(3, 1))
-print(p4, vp = vplayout(4, 1))
-print(p5, vp = vplayout(5, 1))
+grid.draw(iphone.stl)
+
+
 dev.off()
 
 
+
+
+
+### Volatility comparison
+years <- "2007"
 stl.comb <- rbind(ggmac.stl, ggiphone.stl, ggipad.stl)
 stl.comb$Ratio <- (stl.comb$seasonal/stl.comb$trend)*100
+
+stl.comb.recent <- stl.comb %>% filter(is.null(years) | year(Date) > years)
+
+pdf(file="figures/apple-three-season-gg.pdf", height=3, width=10)
+p <- ggplot(stl.comb.recent, aes(x=Date, y=Ratio, color=Product))
+p + geom_line(size=0.9) + ylab("Seasonal/Trend (pct)") +  scale_colour_manual(values=my.colors()) + theme(legend.position="top")
+dev.off()
+
 
 pdf(file="figures/apple-three-season-gg.pdf", height=3, width=10)
 p <- ggplot(stl.comb, aes(x=Date, y=Ratio, color=Product))
 p + geom_line(size=0.9) + ylab("Seasonal/Trend (pct)") +  scale_colour_manual(values=my.colors()) + theme(legend.position="top")
 dev.off()
-
 
 ### Banking illustration
 ## iphone sales
