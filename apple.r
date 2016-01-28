@@ -146,6 +146,59 @@ dev.off()
 ggsave("figures/apple-sales-trends-mac.png", p0, height=4, width=8, dpi=300)
 
 
+### Some other requests---from @siracusa
+### Showing iPod as well. Smoothers don't work so well
+### because the iPod seasonality is nuts. Use a moving
+### average instead
+
+library(TTR)
+
+mac.ma <- SMA(data$Mac, 4)
+ipod.ma <- c(SMA(data$iPod[1:64], 4), rep(NA, 5)) # SMA doesn't like non-leading NAs
+iphone.ma <- SMA(data$iPhone, 4)
+ipad.ma <- SMA(data$iPad, 4)
+
+data.ma <- data.frame(data$Date, mac.ma, ipod.ma, iphone.ma, ipad.ma)
+colnames(data.ma) <- c("Date", "Mac", "iPod", "iPhone", "iPad")
+
+data.mam <- gather(data.ma, Product, Sales, iPad:Mac)
+
+## Sales trends with a 4-period moving average
+pdf(file="figures/apple-sales-trends-siracusa.pdf", height=8, width=10)
+p <- ggplot(data.mam, aes(x=Date, y=Sales, color=Product, fill=Product))
+p0 <- p + geom_line(size=1) +
+    theme(legend.position="top") +
+    scale_x_date(labels = date_format("%Y"),
+                 breaks=date_breaks("year")) +
+    xlab("") +
+    ylab("Moving Average of Sales (millions)") +
+    scale_colour_manual(values=my.colors()) +
+    scale_fill_manual(values=my.colors())
+print(p0)
+dev.off()
+
+ggsave("figures/apple-sales-trends-siracusa.png", p0, height=8, width=10, dpi=300)
+
+## Raw trends for all products
+pdf(file="figures/apple-sales-trends-raw-siracusa.pdf", height=8, width=10)
+p <- ggplot(data.m, aes(x=Date, y=Sales, color=Product, fill=Product))
+p0 <- p + geom_line(size=1) +
+    theme(legend.position="top") +
+    scale_x_date(labels = date_format("%Y"),
+                 breaks=date_breaks("year")) +
+    xlab("") +
+    ylab("Raw Sales (millions)") +
+    scale_colour_manual(values=my.colors()) +
+    scale_fill_manual(values=my.colors())
+print(p0)
+dev.off()
+
+ggsave("figures/apple-sales-trends-raw-siracusa.png", p0, height=8, width=10, dpi=300)
+
+
+
+
+
 ### Loess Decomposition
 
 pdf(file="figures/apple-mac-decomposition-gg.pdf", height=8, width=12)
