@@ -63,11 +63,11 @@ my.colors <- function(palette = "cb") {
 }
 
 
-### Convenience function to draw the plots
-draw.stl <- function(data.all = data.m, prod.name = "iPhone", start.yr = 2007, start.q = 2,
-    bar.width = 4) {
+### Convenience functions to draw the plots
 
-    data.ts <- data.all %>% group_by(Product) %>% filter(Product == prod.name) %>%
+get.stl <- function(data=data.m, prod.name = "iPhone", start.yr = 2007, start.q = 2){
+
+    data.ts <- data %>% group_by(Product) %>% filter(Product == prod.name) %>%
         na.omit() %>% data.frame(.)
 
     prod.ts <- ts(data.ts$Sales, start = c(start.yr, start.q), frequency = 4)
@@ -77,27 +77,33 @@ draw.stl <- function(data.all = data.m, prod.name = "iPhone", start.yr = 2007, s
     ggdata.stl$sales <- data.ts$Sales
     ggdata.stl$Date <- data.ts$Date
     ggdata.stl$Product <- data.ts$Product
+    return(ggdata.stl)
+}
+
+draw.stl <- function(data.stl = iphone.stl,
+                     prod.name = "iPhone",
+                     bar.width = 4) {
 
     theme_set(theme_minimal())
 
-    p <- ggplot(ggdata.stl, aes(x = Date, y = sales))
+    p <- ggplot(data.stl, aes(x = Date, y = sales))
     p1 <- p + geom_line() + ylab("Data") + xlab("") + theme(axis.text.x = element_blank(),
         axis.title.y = element_text(size = rel(0.8)), plot.title = element_text(size = rel(1))) +
         ggtitle(paste(prod.name, "Units Sold (Millions)"))
 
-    p <- ggplot(ggdata.stl, aes(x = Date, y = trend))
+    p <- ggplot(data.stl, aes(x = Date, y = trend))
     p2 <- p + geom_line() + ylab("Trend") + xlab("") + theme(axis.text.x = element_blank(),
         axis.title.y = element_text(size = rel(0.8)))
 
-    p <- ggplot(ggdata.stl, aes(x = Date, y = seasonal))
+    p <- ggplot(data.stl, aes(x = Date, y = seasonal))
     p3 <- p + geom_line() + ylab("Seasonal") + xlab("") + theme(axis.text.x = element_blank(),
         axis.title.y = element_text(size = rel(0.8)))
 
-    p <- ggplot(ggdata.stl, aes(x = Date, ymax = remainder, ymin = 0))
+    p <- ggplot(data.stl, aes(x = Date, ymax = remainder, ymin = 0))
     p4 <- p + geom_linerange(size = bar.width) + ylab("Remainder") + xlab("") + theme(axis.text.x = element_blank(),
         axis.title.y = element_text(size = rel(0.8)))
 
-    p <- ggplot(ggdata.stl, aes(x = Date, y = (seasonal/trend) * 100))
+    p <- ggplot(data.stl, aes(x = Date, y = (seasonal/trend) * 100))
     p5 <- p + geom_line(stat = "identity") + ylab("Seasonal/Trend (%)") + theme(axis.title.y = element_text(size = rel(0.8)))
 
     g1 <- ggplotGrob(p1)
@@ -159,7 +165,7 @@ colnames(data.ma) <- c("Date", "Mac", "iPod", "iPhone", "iPad")
 data.mam <- gather(data.ma, Product, Sales, iPad:Mac)
 
 ## Sales trends with a 4-period moving average
-pdf(file = "figures/apple-sales-trends-siracusa.pdf", height = 8, width = 10)
+pdf(file = "figures/apple-sales-trends-siracusa-ma.pdf", height = 8, width = 10)
 p <- ggplot(data.mam, aes(x = Date, y = Sales, color = Product, fill = Product))
 p0 <- p + geom_line(size = 1) + theme(legend.position = "top") + scale_x_date(labels = date_format("%Y"),
     breaks = date_breaks("year")) + xlab("") + ylab("Moving Average of Sales (millions)") +
@@ -167,7 +173,7 @@ p0 <- p + geom_line(size = 1) + theme(legend.position = "top") + scale_x_date(la
 print(p0)
 dev.off()
 
-ggsave("figures/apple-sales-trends-siracusa.png", p0, height = 8, width = 10, dpi = 300)
+ggsave("figures/apple-sales-trends-siracusa-ma.png", p0, height = 8, width = 10, dpi = 300)
 
 ## Raw trends for all products
 pdf(file = "figures/apple-sales-trends-raw-siracusa.pdf", height = 8, width = 10)
@@ -189,7 +195,14 @@ ggsave("figures/apple-sales-trends-raw-siracusa.png", p0, height = 8, width = 10
 
 pdf(file = "figures/apple-mac-decomposition-gg.pdf", height = 8, width = 12)
 
-mac.stl <- draw.stl(data.all = data.m, prod.name = "Mac", start.yr = 1998, start.q = 2)
+mac.stl.df <- get.stl(data=data.m,
+                      prod.name = "Mac",
+                      start.yr = 1998,
+                      start.q = 2)
+
+mac.stl <- draw.stl(data.stl = mac.stl.df,
+                    prod.name = "Mac",
+                    bar.width = 4)
 grid.newpage()
 grid.draw(mac.stl)
 
@@ -198,8 +211,15 @@ dev.off()
 
 pdf(file = "figures/apple-ipad-decomposition-gg.pdf", height = 8.2, width = 10)
 
-ipad.stl <- draw.stl(data.all = data.m, prod.name = "iPad", start.yr = 2010, start.q = 2,
-    bar.width = 8)
+ipad.stl.df <- get.stl(data = data.m,
+                        prod.name = "iPad",
+                        start.yr = 2010,
+                        start.q = 2)
+
+ipad.stl <- draw.stl(data = ipad.stl.df,
+                    prod.name = "iPad",
+                    bar.width = 8)
+
 
 grid.newpage()
 grid.draw(ipad.stl)
@@ -207,12 +227,17 @@ grid.draw(ipad.stl)
 dev.off()
 
 
-
-
 pdf(file = "figures/apple-iphone-decomposition-gg.pdf", height = 8, width = 10)
 
-iphone.stl <- draw.stl(data.all = data.m, prod.name = "iPhone", start.yr = 2007,
-    start.q = 2, bar.width = 6)
+iphone.stl.df <- get.stl(data = data.m,
+                         prod.name = "iPhone",
+                         start.yr = 2007,
+                         start.q = 2)
+
+iphone.stl <- draw.stl(data.stl = iphone.stl.df,
+                    prod.name = "iPhone",
+                    bar.width = 6)
+
 
 grid.newpage()
 grid.draw(iphone.stl)
@@ -221,6 +246,29 @@ grid.draw(iphone.stl)
 dev.off()
 
 
+### With the LOESS decomposition, redraw the moving average plot
+ipod.stl.df <- get.stl(data = data.m,
+                       prod.name = "iPod",
+                       start.yr = 2001,
+                       start.q = 4)
+
+data.stl.all <- rbind(mac.stl.df, ipod.stl.df, iphone.stl.df, ipad.stl.df)
+
+## Sales trends with a 4-period moving average
+pdf(file = "figures/apple-sales-trends-siracusa.pdf", height = 8, width = 10)
+p <- ggplot(data.stl.all, aes(x = Date, y = trend, color = Product, fill = Product))
+p0 <- p + geom_line(size = 1) +
+    theme(legend.position = "top") +
+    scale_x_date(labels = date_format("%Y"),
+                 breaks = date_breaks("year")) +
+    xlab("Year") +
+    ylab("Decomposed Sales Trend (millions)") +
+    scale_colour_manual(values = my.colors()) +
+    scale_fill_manual(values = my.colors())
+print(p0)
+dev.off()
+
+ggsave("figures/apple-sales-trends-siracusa.png", p0, height = 8, width = 10, dpi = 300)
 
 
 
