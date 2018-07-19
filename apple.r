@@ -119,7 +119,7 @@ draw.stl <- function(data.stl = iphone.stl,
 theme_set(theme_minimal())
 
 data <- read.csv("data/apple-all-products-quarterly-sales.csv", header = TRUE)
-data$Date <- seq(as.Date("1998/12/31"), as.Date("2016/03/31"), by = "quarter")
+data$Date <- seq(as.Date("1998/12/31"), as.Date("2018/03/31"), by = "quarter")
 
 data.m <- gather(data, Product, Sales, iPhone:Mac)
 
@@ -161,7 +161,7 @@ ggsave("figures/apple-sales-trends-mac.png", p0, height = 4, width = 8, dpi = 30
 library(TTR)
 
 mac.ma <- SMA(data$Mac, 4)
-ipod.ma <- c(SMA(data$iPod[1:64], 4), rep(NA, 6))  # SMA doesn't like non-leading NAs
+ipod.ma <- c(SMA(data$iPod[1:64], 4), rep(NA, 14))  # SMA doesn't like non-leading NAs
 iphone.ma <- SMA(data$iPhone, 4)
 ipad.ma <- SMA(data$iPad, 4)
 
