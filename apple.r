@@ -119,17 +119,23 @@ draw.stl <- function(data.stl = iphone.stl,
 theme_set(theme_minimal())
 
 data <- read.csv("data/apple-all-products-quarterly-sales.csv", header = TRUE)
-data$Date <- seq(as.Date("1998/12/31"), as.Date("2015/12/31"), by = "quarter")
+data$Date <- seq(as.Date("1998/12/31"), as.Date("2016/03/31"), by = "quarter")
 
 data.m <- gather(data, Product, Sales, iPhone:Mac)
 
 ## Sales trends with a loess smoother
 pdf(file = "figures/apple-sales-trends.pdf", height = 4, width = 8)
-p <- ggplot(subset(data.m, Product != "iPod" & Period > 30), aes(x = Date, y = Sales,
+p <- ggplot(subset(data.m, Product != "iPod" & Period > 30),
+            aes(x = Date, y = Sales,
     color = Product, fill = Product))
-p0 <- p + geom_point(size = 1.3) + geom_smooth(size = 0.8, se = FALSE) + theme(legend.position = "top") +
-    scale_x_date(labels = date_format("%Y"), breaks = date_breaks("year")) + xlab("") +
-    ylab("Sales (millions)") + scale_colour_manual(values = my.colors()) + scale_fill_manual(values = my.colors())
+p0 <- p + geom_point(size = 1.3) +
+    geom_smooth(size = 0.8, se = FALSE) +
+    theme(legend.position = "top") +
+    scale_x_date(labels = date_format("%Y"),
+                 breaks = date_breaks("year")) + xlab("") +
+    ylab("Sales (millions)") +
+    scale_colour_manual(values = my.colors()) +
+    scale_fill_manual(values = my.colors())
 print(p0)
 dev.off()
 
@@ -155,7 +161,7 @@ ggsave("figures/apple-sales-trends-mac.png", p0, height = 4, width = 8, dpi = 30
 library(TTR)
 
 mac.ma <- SMA(data$Mac, 4)
-ipod.ma <- c(SMA(data$iPod[1:64], 4), rep(NA, 5))  # SMA doesn't like non-leading NAs
+ipod.ma <- c(SMA(data$iPod[1:64], 4), rep(NA, 6))  # SMA doesn't like non-leading NAs
 iphone.ma <- SMA(data$iPhone, 4)
 ipad.ma <- SMA(data$iPad, 4)
 
@@ -186,8 +192,6 @@ dev.off()
 
 ggsave("figures/apple-sales-trends-raw-siracusa.png", p0, height = 8, width = 10,
     dpi = 300)
-
-
 
 
 
@@ -274,7 +278,8 @@ ggsave("figures/apple-sales-trends-siracusa.png", p0, height = 8, width = 10, dp
 
 ### Volatility comparison
 years <- "2007"
-stl.comb <- rbind(ggmac.stl, ggiphone.stl, ggipad.stl)
+stl.comb <- data.stl.all
+
 stl.comb$Ratio <- (stl.comb$seasonal/stl.comb$trend) * 100
 
 stl.comb.recent <- stl.comb %>% filter(is.null(years) | year(Date) > years)
